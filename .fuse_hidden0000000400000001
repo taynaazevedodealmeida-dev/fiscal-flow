@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiscal Flow — Organize suas notas fiscais</title>
+<style>
+  :root{
+    --bg:#0e0b1a; --bg2:#15112a; --card:#1b1633; --card2:#221b40;
+    --border:#2e2752; --txt:#e9e6f5; --muted:#9b94c4; --accent:#8b5cf6;
+    --accent2:#a78bfa; --ok:#34d399; --err:#f87171; --shadow:rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%,#241a4d 0%,transparent 60%),var(--bg);
+    color:var(--txt);min-height:100vh;line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 20px 64px}
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#6d28d9);
+    display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 6px 18px var(--shadow)}
+  h1{font-size:22px;font-weight:700;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:14px;margin:2px 0 24px}
+  .badge{display:inline-block;font-size:11px;color:var(--accent2);background:rgba(139,92,246,.12);
+    border:1px solid var(--border);padding:2px 9px;border-radius:999px;margin-left:8px}
+  .drop{border:2px dashed var(--border);border-radius:16px;background:var(--card);
+    padding:40px 20px;text-align:center;transition:.2s;cursor:pointer}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--card2)}
+  .drop .big{font-size:17px;font-weight:600;margin-bottom:4px}
+  .drop .sm{color:var(--muted);font-size:13px}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+  button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:10px 16px;
+    font-weight:600;font-size:14px;transition:.15s}
+  .btn{background:linear-gradient(135deg,var(--accent),#7c3aed);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.ghost{background:var(--card2);color:var(--txt);border:1px solid var(--border);box-shadow:none}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:24px 0}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+  .stat .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+  .stat .v{font-size:24px;font-weight:700;margin-top:4px}
+  .stat .v.money{color:var(--accent2)}
+  section.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:20px;margin-bottom:20px}
+  .panel h2{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+  tbody tr:hover{background:var(--card2)}
+  td.r,th.r{text-align:right}
+  .cat{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;
+    background:rgba(139,92,246,.14);color:var(--accent2);border:1px solid var(--border)}
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;font-size:13px}
+  .bar-row .lbl{width:160px;color:var(--muted);flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar-track{flex:1;background:var(--bg2);border-radius:8px;height:22px;overflow:hidden;border:1px solid var(--border)}
+  .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:8px;min-width:2px}
+  .bar-row .val{width:110px;text-align:right;font-weight:600;flex-shrink:0}
+  .errlist{font-size:13px;color:var(--err)}
+  .errlist li{margin-bottom:4px}
+  .hidden{display:none}
+  .foot{color:var(--muted);font-size:12px;text-align:center;margin-top:32px}
+  .priv{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--ok);font-size:13px;margin-top:14px}
+  @media(max-width:560px){.bar-row .lbl{width:90px}.bar-row .val{width:84px}th,td{padding:8px 7px;font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">📊</div>
+    <div>
+      <h1>Fiscal Flow <span class="badge">100% no navegador</span></h1>
+    </div>
+  </header>
+  <p class="sub">Solte suas Notas Fiscais eletrônicas (XML) e veja tudo organizado e categorizado em segundos. Nada sai do seu computador.</p>
+
+  <section class="panel">
+    <div id="drop" class="drop">
+      <div class="big">Arraste seus arquivos XML aqui</div>
+      <div class="sm">ou clique para selecionar — NF-e e NFC-e suportadas (vários de uma vez)</div>
+      <div class="btnrow">
+        <button class="btn" id="pickBtn" type="button">Selecionar arquivos</button>
+        <button class="btn ghost" id="sampleBtn" type="button">Carregar nota de exemplo</button>
+        <button class="btn ghost" id="clearBtn" type="button">Limpar</button>
+      </div>
+    </div>
+    <input id="fileInput" type="file" accept=".xml,text/xml,application/xml" multiple class="hidden">
+    <ul id="errors" class="errlist" style="margin-top:14px"></ul>
+  </section>
+
+  <div id="results" class="hidden">
+    <div class="cards">
+      <div class="stat"><div class="k">Notas processadas</div><div class="v" id="stCount">0</div></div>
+      <div class="stat"><div class="k">Total geral</div><div class="v money" id="stTotal">R$ 0,00</div></div>
+      <div class="stat"><div class="k">Itens</div><div class="v" id="stItems">0</div></div>
+      <div class="stat"><div class="k">Categorias</div><div class="v" id="stCats">0</div></div>
+    </div>
+
+    <section class="panel">
+      <h2>Gastos por categoria</h2>
+      <div id="chart"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Notas consolidadas
+        <button class="btn ghost" id="csvBtn" type="button" style="margin-left:auto">Exportar CSV para o contador</button>
+      </h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Data</th><th>Fornecedor</th><th>CNPJ</th><th>Categoria</th><th class="r">Valor</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="priv">🔒 Seus dados nunca saem do seu navegador. Privacidade total, sem upload.</div>
+  <p class="foot">Fiscal Flow — MVP open. Funciona offline. Feito para MEI e pequenas empresas do Brasil.</p>
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   FISCAL FLOW — tudo client-side. Nada é enviado para servidor algum.
+   =========================================================================== */
+
+const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+const money = v => fmtBRL.format(Number(v)||0);
+
+/* ===========================================================================
+   MOTOR DE CATEGORIZAÇÃO  ───  EDITE AQUI
+   Regras simples por palavra-chave. A primeira categoria cujo padrão casar
+   com a descrição (xProd) vence. Para adicionar uma categoria, basta incluir
+   uma linha {nome, palavras:[...]}. Acentos e caixa são ignorados.
+   =========================================================================== */
+const REGRAS = [
+  { nome:'Combustível',            palavras:['gasolina','etanol','alcool','diesel','combustivel','posto','abastec'] },
+  { nome:'Alimentação',            palavras:['restaurante','lanche','refeic','aliment','padaria','mercado','supermercado','cafe','bebida','marmita'] },
+  { nome:'Software/Assinatura',    palavras:['software','assinatura','licenca','saas','nuvem','cloud','hosting','dominio','sistema','app'] },
+  { nome:'Material de Escritório', palavras:['papel','caneta','toner','cartucho','escritorio','impressora','grampo','pasta','envelope'] },
+  { nome:'Frete/Transporte',       palavras:['frete','transporte','entrega','correio','sedex','logistic','motoboy','uber','taxi'] },
+  { nome:'Serviços',               palavras:['servico','consultoria','manutenc','honorario','assessoria','mao de obra','reparo','instalac'] },
+  { nome:'Telecom/Internet',       palavras:['internet','telefone','celular','telecom','banda larga','plano','dados'] },
+];
+const CAT_PADRAO = 'Outros';
+
+function normaliza(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+function categorizar(descricao){
+  const d = normaliza(descricao);
+  for(const r of REGRAS){
+    if(r.palavras.some(p => d.includes(normaliza(p)))) return r.nome;
+  }
+  return CAT_PADRAO;
+}
+/* ===========================================================================
+   FIM DO MOTOR DE CATEGORIZAÇÃO
+   =========================================================================== */
+
+let NOTAS = [];   // notas parseadas com sucesso
+let ERROS = [];   // {arquivo, motivo}
+
+/* Helper para ler primeiro texto de uma tag dentro de um nó (ignora namespace). */
+function txt(node, tag){
+  if(!node) return '';
+  const el = node.getElementsByTagName(tag)[0];
+  return el ? el.textContent.trim() : '';
+}
+
+/* Parseia o XML de uma NF-e/NFC-e usando DOMParser. Lança erro se inválido. */
+function parseNFe(xmlString, nomeArquivo){
+  const doc = new DOMParser().parseFromString(xmlString, 'application/xml');
+  if(doc.getElementsByTagName('parsererror').length){
+    throw new Error('XML malformado');
+  }
+  const infNFe = doc.getElementsByTagName('infNFe')[0] || doc.getElementsByTagName('NFe')[0];
+  if(!infNFe) throw new Error('Não parece ser uma NF-e/NFC-e');
+
+  const ide   = infNFe.getElementsByTagName('ide')[0];
+  const emit  = infNFe.getElementsByTagName('emit')[0];
+  const total = infNFe.getElementsByTagName('total')[0];
+
+  const numero = txt(ide,'nNF') || '—';
+  const dhEmiRaw = txt(ide,'dhEmi') || txt(ide,'dEmi');
+  const data = parseData(dhEmiRaw);
+
+  const fornecedor = txt(emit,'xNome') || txt(emit,'xFant') || 'Emitente desconhecido';
+  const cnpj = formataCNPJ(txt(emit,'CNPJ') || txt(emit,'CPF'));
+
+  let vNF = Number(txt(total,'vNF'));
+  // itens
+  const prods = infNFe.getElementsByTagName('prod');
+  const itens = [];
+  for(const p of prods){
+    const desc = txt(p,'xProd');
+    const v = Number(txt(p,'vProd')) || 0;
+    if(desc) itens.push({ descricao:desc, valor:v, categoria:categorizar(desc) });
+  }
+  if(!vNF) vNF = itens.reduce((s,i)=>s+i.valor,0);
+
+  // categoria da nota = categoria do item de maior valor
+  let catNota = CAT_PADRAO;
+  if(itens.length){
+    const maior = itens.reduce((a,b)=> b.valor>a.valor?b:a, itens[0]);
+    catNota = maior.categoria;
+  }
+
+  return { arquivo:nomeArquivo, numero, dataRaw:dhEmiRaw, data, fornecedor, cnpj, valor:vNF, itens, categoria:catNota };
+}
+
+function parseData(raw){
+  if(!raw) return '—';
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : raw;
+}
+function formataCNPJ(c){
+  c = (c||'').replace(/\D/g,'');
+  if(c.length===14) return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,'$1.$2.$3/$4-$5');
+  if(c.length===11) return c.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/,'$1.$2.$3-$4');
+  return c || '—';
+}
+
+/* ---------- Processamento de arquivos (robusto: try/catch por arquivo) ---------- */
+async function processarArquivos(files){
+  for(const f of files){
+    try{
+      const texto = await f.text();
+      const nota = parseNFe(texto, f.name);
+      NOTAS.push(nota);
+    }catch(err){
+      ERROS.push({ arquivo:f.name, motivo:err.message });
+    }
+  }
+  render();
+}
+
+/* ---------- Renderização ---------- */
+function render(){
+  // erros
+  const ul = document.getElementById('errors');
+  ul.innerHTML = ERROS.map(e=>`<li>⚠ <b>${escapeHtml(e.arquivo)}</b>: ${escapeHtml(e.motivo)}</li>`).join('');
+
+  if(!NOTAS.length){
+    document.getElementById('results').classList.add('hidden');
+    return;
+  }
+  document.getElementById('results').classList.remove('hidden');
+
+  // totais por categoria
+  const porCat = {};
+  let totalGeral = 0, totalItens = 0;
+  for(const n of NOTAS){
+    totalGeral += n.valor;
+    totalItens += n.itens.length;
+    porCat[n.categoria] = (porCat[n.categoria]||0) + n.valor;
+  }
+
+  document.getElementById('stCount').textContent = NOTAS.length;
+  document.getElementById('stTotal').textContent = money(totalGeral);
+  document.getElementById('stItems').textContent = totalItens;
+  document.getElementById('stCats').textContent  = Object.keys(porCat).length;
+
+  // gráfico de barras (divs/CSS)
+  const cats = Object.entries(porCat).sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(...cats.map(c=>c[1]),1);
+  document.getElementById('chart').innerHTML = cats.map(([cat,val])=>`
+    <div class="bar-row">
+      <span class="lbl" title="${escapeHtml(cat)}">${escapeHtml(cat)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(val/max*100).toFixed(1)}%"></div></div>
+      <span class="val">${money(val)}</span>
+    </div>`).join('');
+
+  // tabela
+  const rows = [...NOTAS].sort((a,b)=> (b.dataRaw||'').localeCompare(a.dataRaw||''));
+  document.getElementById('tbody').innerHTML = rows.map(n=>`
+    <tr>
+      <td>${escapeHtml(n.data)}</td>
+      <td>${escapeHtml(n.fornecedor)}</td>
+      <td>${escapeHtml(n.cnpj)}</td>
+      <td><span class="cat">${escapeHtml(n.categoria)}</span></td>
+      <td class="r">${money(n.valor)}</td>
+    </tr>`).join('');
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- Exportar CSV (Blob, download no navegador) ---------- */
+function exportarCSV(){
+  if(!NOTAS.length) return;
+  const sep = ';'; // ; abre direto no Excel pt-BR
+  const head = ['Data','Numero','Fornecedor','CNPJ','Categoria','Valor (R$)'];
+  const linhas = [...NOTAS]
+    .sort((a,b)=>(a.dataRaw||'').localeCompare(b.dataRaw||''))
+    .map(n=>[
+      n.data, n.numero, csvField(n.fornecedor), n.cnpj, n.categoria,
+      (Number(n.valor)||0).toFixed(2).replace('.',',')
+    ].join(sep));
+  const csv = '﻿' + [head.join(sep), ...linhas].join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'fiscal-flow-consolidado.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function csvField(s){
+  s = String(s||'');
+  return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+
+/* ---------- NF-e de exemplo (em memória, para demonstração) ---------- */
+function xmlExemplo(num, dh, cnpj, nome, itens){
+  const dets = itens.map((it,i)=>`
+    <det nItem="${i+1}"><prod>
+      <xProd>${it.d}</xProd><vProd>${it.v.toFixed(2)}</vProd>
+    </prod></det>`).join('');
+  const vNF = itens.reduce((s,i)=>s+i.v,0).toFixed(2);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc><NFe><infNFe Id="NFe${num}" versao="4.00">
+  <ide><nNF>${num}</nNF><dhEmi>${dh}</dhEmi></ide>
+  <emit><CNPJ>${cnpj}</CNPJ><xNome>${nome}</xNome></emit>
+  ${dets}
+  <total><ICMSTot><vNF>${vNF}</vNF></ICMSTot></total>
+</infNFe></NFe></nfeProc>`;
+}
+
+function carregarExemplos(){
+  const exemplos = [
+    xmlExemplo('1042','2026-05-12T09:31:00-03:00','12345678000199','Posto Avenida Combustíveis LTDA',
+      [{d:'GASOLINA COMUM',v:280.50},{d:'OLEO LUBRIFICANTE',v:45.00}]),
+    xmlExemplo('2087','2026-05-18T14:05:00-03:00','98765432000155','Mercado Bom Preço LTDA',
+      [{d:'REFEICAO EXECUTIVA RESTAURANTE',v:38.90},{d:'AGUA MINERAL 500ML',v:4.50},{d:'CAFE EXPRESSO',v:7.00}]),
+    xmlExemplo('3311','2026-05-25T11:20:00-03:00','11222333000144','Cloud Brasil Tecnologia LTDA',
+      [{d:'ASSINATURA MENSAL SOFTWARE SAAS',v:149.90}]),
+  ];
+  exemplos.forEach((xml,i)=>{
+    try{ NOTAS.push(parseNFe(xml, `exemplo-${i+1}.xml`)); }
+    catch(e){ ERROS.push({arquivo:`exemplo-${i+1}.xml`,motivo:e.message}); }
+  });
+  render();
+}
+
+/* ---------- Wiring de eventos ---------- */
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+
+document.getElementById('pickBtn').addEventListener('click', e=>{ e.stopPropagation(); fileInput.click(); });
+drop.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', e=> processarArquivos([...e.target.files]));
+
+['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e=>{
+  const files = [...(e.dataTransfer?.files||[])].filter(f=>/\.xml$/i.test(f.name) || /xml/.test(f.type));
+  if(files.length) processarArquivos(files);
+});
+
+document.getElementById('sampleBtn').addEventListener('click', e=>{ e.stopPropagation(); carregarExemplos(); });
+document.getElementById('csvBtn').addEventListener('click', exportarCSV);
+document.getElementById('clearBtn').addEventListener('click', e=>{
+  e.stopPropagation();
+  NOTAS = []; ERROS = []; fileInput.value=''; render();
+});
+</script>
+</body>
+</html>
